@@ -1,80 +1,36 @@
 const express = require("express");
-const bcrypt = require("bcryptjs");
+const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { User } = require("../models");
+const { JWT_SECRET } = require("../middleware/auth");
 
 const router = express.Router();
 
-// SIMPAN DI .env kalau sudah paham, untuk praktikum boleh hardcode
-const JWT_SECRET = "rahasia_jwt_praktikum";
-
-// Dummy "database"
-const users = []; 
-// format: { id, nama, email, passwordHash, role }
-
 router.post("/register", async (req, res) => {
-  try {
-    const { nama, email, password, role } = req.body;
+  const { nama, email, password, role } = req.body;
+  if (!nama || !email || !password) return res.status(400).json({ message: "Nama, email, password wajib" });
 
-    if (!nama || !email || !password) {
-      return res.status(400).json({ message: "Nama, email, dan password harus diisi" });
-    }
+  const exist = await User.findOne({ where: { email } });
+  if (exist) return res.status(409).json({ message: "Email sudah terdaftar" });
 
-    const roleFinal = role || "mahasiswa";
+  const hash = await bcrypt.hash(password, 10);
+  const user = await User.create({ nama, email, password: hash, role: role || "mahasiswa" });
 
-    const existing = users.find((u) => u.email === email);
-    if (existing) {
-      return res.status(409).json({ message: "Email sudah terdaftar" });
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    const newUser = {
-      id: users.length + 1,
-      nama,
-      email,
-      passwordHash,
-      role: roleFinal,
-    };
-
-    users.push(newUser);
-
-    return res.status(201).json({
-      message: "Register berhasil",
-      data: { id: newUser.id, nama: newUser.nama, email: newUser.email, role: newUser.role },
-    });
-  } catch (err) {
-    return res.status(500).json({ message: "Internal Server Error", error: err.message });
-  }
+  res.status(201).json({ message: "Register berhasil", data: { id: user.id, nama: user.nama, role: user.role } });
 });
 
 router.post("/login", async (req, res) => {
-  try {
-    const { email, password } = req.body;
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ message: "Email & password wajib" });
 
-    if (!email || !password) {
-      return res.status(400).json({ message: "Email dan password harus diisi" });
-    }
+  const user = await User.findOne({ where: { email } });
+  if (!user) return res.status(401).json({ message: "Email atau password salah" });
 
-    const user = users.find((u) => u.email === email);
-    if (!user) {
-      return res.status(401).json({ message: "Email atau password salah" });
-    }
+  const ok = await bcrypt.compare(password, user.password);
+  if (!ok) return res.status(401).json({ message: "Email atau password salah" });
 
-    const ok = await bcrypt.compare(password, user.passwordHash);
-    if (!ok) {
-      return res.status(401).json({ message: "Email atau password salah" });
-    }
-
-    const token = jwt.sign(
-      { id: user.id, nama: user.nama, email: user.email, role: user.role },
-      JWT_SECRET,
-      { expiresIn: "1h" }
-    );
-
-    return res.json({ message: "Login berhasil", token });
-  } catch (err) {
-    return res.status(500).json({ message: "Internal Server Error", error: err.message });
-  }
+  const token = jwt.sign({ id: user.id, nama: user.nama, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: "1h" });
+  res.json({ message: "Login berhasil", token, user: { id: user.id, nama: user.nama, role: user.role } });
 });
 
 module.exports = router;

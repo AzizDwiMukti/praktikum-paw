@@ -3,25 +3,14 @@ const cors = require("cors");
 
 const app = express();
 
-// WAJIB: agar React (3000) bisa akses Backend (3001)
-app.use(cors({
-  origin: "http://localhost:3000",
-  credentials: true,
-}));
-
-// WAJIB: agar req.body kebaca (JSON)
+app.use(cors({ origin: "http://localhost:3000", credentials: true }));
 app.use(express.json());
 
-// ROUTES
-const authRoutes = require("./routes/auth");
-app.use("/api/auth", authRoutes);
+app.get("/", (req, res) => res.json({ message: "Backend OK" }));
 
-// test endpoint biar gampang cek server hidup
-app.get("/", (req, res) => {
-  res.json({ message: "Backend OK" });
-});
+app.use("/api/auth", require("./routes/auth"));
+app.use("/api/presensi", require("./routes/presensi"));
+app.use("/api/reports", require("./routes/reports"));
 
 const PORT = 3001;
-app.listen(PORT, () => {
-  console.log(`Express server running at http://localhost:${PORT}`);
-});
+app.listen(PORT, () => console.log(`Running http://localhost:${PORT}`));

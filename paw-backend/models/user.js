@@ -2,38 +2,12 @@
 const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
-  class User extends Model {
-    static associate(models) {
-      // contoh relasi (opsional):
-      // User.hasMany(models.Presensi, { foreignKey: 'userId' });
-    }
-  }
-
+  class User extends Model {}
   User.init({
-    nama: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    email: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      unique: true,
-      validate: { isEmail: true }
-    },
-    password: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    role: {
-      type: DataTypes.ENUM('mahasiswa', 'admin'),
-      allowNull: false,
-      defaultValue: 'mahasiswa',
-      validate: { isIn: [['mahasiswa', 'admin']] }
-    }
-  }, {
-    sequelize,
-    modelName: 'User',
-  });
-
+    nama: { type: DataTypes.STRING, allowNull: false },
+    email: { type: DataTypes.STRING, allowNull: false, unique: true },
+    password: { type: DataTypes.STRING, allowNull: false },
+    role: { type: DataTypes.ENUM("admin","mahasiswa"), defaultValue: "mahasiswa" },
+  }, { sequelize, modelName: 'User', tableName: 'users' });
   return User;
 };
